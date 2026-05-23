@@ -257,6 +257,18 @@
             "mode": "thresholds"
           },
           "decimals": 2,
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "color": "green",
+                  "text": "No Errors"
+                }
+              },
+              "type": "special"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1015,5 +1027,5 @@
   "timezone": "browser",
   "title": "Robert Consulting — Platform Overview",
   "uid": "rc-platform-overview",
-  "version": 2
+  "version": 3
 }
