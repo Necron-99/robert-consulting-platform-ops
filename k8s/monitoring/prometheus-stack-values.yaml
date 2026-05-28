@@ -68,6 +68,11 @@ prometheus:
     # Additional scrape configs for Robert Consulting APIs
     # FastAPI exposes metrics at /metrics via prometheus-fastapi-instrumentator
     additionalScrapeConfigs:
+      - job_name: 'node-exporter-localhost'
+        static_configs:
+          - targets: ['127.0.0.1:9100']
+        metrics_path: '/metrics'
+        scrape_interval: 30s
       - job_name: 'compliance-api'
         static_configs:
           - targets: ['compliance-api.compliance-api.svc.cluster.local:80']
