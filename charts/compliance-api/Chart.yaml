@@ -1,0 +1,14 @@
+apiVersion: v2
+name: compliance-api
+description: Robert Consulting Compliance Framework Mapper API
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - compliance
+  - mitre-attack
+  - nist
+  - fastapi
+maintainers:
+  - name: Rob Bailey
+    email: rsbailey@necron99.org

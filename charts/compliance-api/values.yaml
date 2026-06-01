@@ -1,0 +1,86 @@
+# =============================================================================
+# compliance-api/values.yaml
+# =============================================================================
+# Default values for the compliance-api Helm chart.
+# Override with: helm upgrade compliance-api ./charts/compliance-api -f my-values.yaml
+# or:            helm upgrade compliance-api ./charts/compliance-api --set image.tag=abc123
+
+# -----------------------------------------------------------------------------
+# Image
+# -----------------------------------------------------------------------------
+image:
+  repository: ghcr.io/necron-99/compliance-api
+  tag: latest
+  pullPolicy: Always
+
+# -----------------------------------------------------------------------------
+# Deployment
+# -----------------------------------------------------------------------------
+replicas: 1
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+# -----------------------------------------------------------------------------
+# Resources
+# -----------------------------------------------------------------------------
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 100m
+  limits:
+    memory: 256Mi
+    cpu: 500m
+
+# -----------------------------------------------------------------------------
+# Application environment
+# -----------------------------------------------------------------------------
+env:
+  databasePath: /data/compliance.db
+  corsOrigins: "https://compliance.robertconsulting.net,https://robertconsulting.net"
+  logLevel: info
+
+# -----------------------------------------------------------------------------
+# S3 init container — fetches database on pod start
+# -----------------------------------------------------------------------------
+s3:
+  secretName: aws-compliance-api-credentials
+  # Secret must contain: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
+  #                      AWS_DEFAULT_REGION, S3_BUCKET, S3_KEY
+  initImage: amazon/aws-cli:latest
+
+# -----------------------------------------------------------------------------
+# Ingress
+# -----------------------------------------------------------------------------
+ingress:
+  host: api.compliance.robertconsulting.net
+  clusterIssuer: letsencrypt-prod
+  tlsSecretName: compliance-api-tls
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+# -----------------------------------------------------------------------------
+# Health probes
+# -----------------------------------------------------------------------------
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# -----------------------------------------------------------------------------
+# Namespace
+# -----------------------------------------------------------------------------
+namespace: compliance-api
