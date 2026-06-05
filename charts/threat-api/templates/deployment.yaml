@@ -60,6 +60,36 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+        {{- if .Values.s3Compliance.enabled }}
+        - name: fetch-compliance-database
+          image: {{ .Values.s3.initImage }}
+          command:
+            - sh
+            - -c
+            - |
+              echo "Fetching compliance.db from S3..."
+              aws s3 cp s3://{{ .Values.s3Compliance.bucket }}/{{ .Values.s3Compliance.key }} {{ .Values.s3Compliance.mountPath }}
+              ls -lh {{ .Values.s3Compliance.mountPath }} || echo "Compliance database fetch failed"
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3Compliance.secretName }}
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3Compliance.secretName }}
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_DEFAULT_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3Compliance.secretName }}
+                  key: AWS_DEFAULT_REGION
+          volumeMounts:
+            - name: data
+              mountPath: /data
+        {{- end }}
       containers:
         - name: {{ .Release.Name }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
@@ -73,6 +103,10 @@ spec:
               value: {{ .Values.env.databasePath }}
             - name: COMPLIANCE_API_URL
               value: {{ .Values.env.complianceApiUrl }}
+            {{- if .Values.s3Compliance.enabled }}
+            - name: COMPLIANCE_DATABASE_PATH
+              value: {{ .Values.s3Compliance.mountPath }}
+            {{- end }}
             - name: CORS_ORIGINS
               value: {{ .Values.env.corsOrigins | quote }}
             - name: LOG_LEVEL

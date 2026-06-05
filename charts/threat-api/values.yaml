@@ -53,6 +53,13 @@ s3:
   #                      AWS_DEFAULT_REGION, S3_BUCKET, S3_KEY
   initImage: amazon/aws-cli:latest
 
+s3Compliance:
+  enabled: true
+  secretName: aws-compliance-api-credentials
+  bucket: robert-consulting-compliance
+  key: data/compliance.db
+  mountPath: /data/compliance.db
+
 # -----------------------------------------------------------------------------
 # Ingress
 # -----------------------------------------------------------------------------
