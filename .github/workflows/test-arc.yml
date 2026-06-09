@@ -1,0 +1,17 @@
+name: Test ARC Runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: arc-runner-set
+    steps:
+      - name: Hello from k3s
+        run: |
+          echo "Running on self-hosted runner"
+          echo "Hostname: $(hostname)"
+          echo "Kernel: $(uname -r)"
+          echo "CPU: $(nproc) cores"
+          echo "Memory: $(free -h | grep Mem)"
+          kubectl version --client 2>/dev/null || echo "kubectl not in default runner image"
