@@ -1,0 +1,92 @@
+wazuh:
+  tag: "4.14.0"
+  createNamespace: false
+  nodeSelector:
+    kubernetes.io/arch: amd64
+
+  credentials:
+    indexer:
+      username: admin
+      password: "WazuhIndex2026!"
+    api:
+      username: wazuh-wui
+      password: "WazuhAPI2026!$"
+    dashboard:
+      username: kibanaserver
+      password: "WazuhDash2026!"
+    agentRegistration: "WazuhAgent2026!$"
+    clusterKey: "rc-wazuh-cluster-key-2026-secure"
+
+  certs:
+    duration: "8760h"
+    renewBefore: "720h"
+
+persistence:
+  storageClass: "local-path"
+  master:
+    size: 10Gi
+    accessMode: ReadWriteOnce
+  worker:
+    size: 10Gi
+    accessMode: ReadWriteOnce
+  indexer:
+    size: 10Gi
+    accessMode: ReadWriteOnce
+  dashboard:
+    size: 2Gi
+    accessMode: ReadWriteOnce
+
+resources:
+  manager:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 2048Mi
+  indexer:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 2048Mi
+    javaOpts: "-Xms512m -Xmx512m"
+  dashboard:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+dashboard:
+  serviceType: ClusterIP
+
+ingestAgent:
+  image: ghcr.io/samma-io/wazuh-agent
+  tag: "main"
+  replicas: 1
+  group: "default"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+
+keycloak:
+  enabled: false
+
+ingress:
+  enabled: false
+  ingressClassName: nginx
+  host: wazuh.robertconsulting.net
+  issuerKind: "ClusterIssuer"
+  clusterIssuer: "letsencrypt-prod"
+  tlsSecretName: wazuh-dashboard-tls

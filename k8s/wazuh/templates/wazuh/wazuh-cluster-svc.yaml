@@ -1,0 +1,17 @@
+# Headless service used as serviceName for all StatefulSets (pod DNS identity)
+apiVersion: v1
+kind: Service
+metadata:
+  name: wazuh-cluster
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh.labels" . | nindent 4 }}
+    app: wazuh-manager
+spec:
+  clusterIP: None
+  selector:
+    app: wazuh-manager
+  ports:
+    - name: cluster
+      port: 1516
+      targetPort: 1516

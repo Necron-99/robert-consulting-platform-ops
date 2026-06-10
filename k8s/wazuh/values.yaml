@@ -1,0 +1,128 @@
+wazuh:
+  tag: "4.14.0"
+
+# Set to true to have Helm create the namespace (alternative to --create-namespace flag)
+createNamespace: false
+
+# Node selector applied to all StatefulSets. Set to {} to disable.
+nodeSelector:
+  kubernetes.io/arch: amd64
+
+# Credentials used across all components.
+# NOTE: Changing indexer.password or dashboard.password here only updates env vars.
+# The OpenSearch internal_users.yml contains pre-computed bcrypt hashes for the defaults.
+# If you change these passwords, re-run securityadmin.sh inside the indexer pod to update hashes.
+credentials:
+  indexer:
+    username: admin
+    password: admin
+  api:
+    username: wazuh-wui
+    password: "MyS3cr37P450r.*-"
+  dashboard:
+    username: kibanaserver
+    password: kibanaserver
+  # Agent registration password written to authd.pass on the manager
+  agentRegistration: "CUSTOM_PASSWORD"
+  # Cluster key must be identical on master and all workers
+  clusterKey: "c98b6ha9b6169zc5f67rae55ae4z5647"
+
+# cert-manager certificate duration settings (applied to all Wazuh internal certs)
+certs:
+  duration: "2160h"     # 90 days
+  renewBefore: "360h"   # 15 days
+
+# Persistent volume settings. storageClass: "" uses the cluster default StorageClass.
+persistence:
+  storageClass: ""
+  master:
+    size: 50Gi
+    accessMode: ReadWriteOnce
+  worker:
+    size: 50Gi
+    accessMode: ReadWriteOnce
+  indexer:
+    size: 50Gi
+    accessMode: ReadWriteOnce
+  dashboard:
+    size: 5Gi
+    accessMode: ReadWriteOnce
+
+resources:
+  manager:
+    requests:
+      cpu: 200m
+      memory: 1024Mi
+    limits:
+      cpu: 500m
+      memory: 2048Mi
+  indexer:
+    requests:
+      cpu: 200m
+      memory: 1024Mi
+    limits:
+      cpu: 500m
+      memory: 2048Mi
+    javaOpts: "-Xms1g -Xmx1g"
+  dashboard:
+    requests: {}
+    limits: {}
+
+dashboard:
+  # Use NodePort for direct access without Ingress, ClusterIP when Ingress is enabled
+  serviceType: ClusterIP
+
+ingestAgent:
+  image: ghcr.io/samma-io/wazuh-agent
+  tag: "main"
+  replicas: 3
+  group: "default"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+keycloak:
+  enabled: false
+  image: quay.io/keycloak/keycloak
+  tag: "23.0.6"
+  # URL path prefix Keycloak is served under — all traffic under this path goes to Keycloak
+  path: "/login"
+  # realm used in OpenID connect URLs
+  realm: wazuh
+  # clientSecret for the 'wazuh' OIDC client — seeded into Keycloak on first boot
+  clientSecret: "2nZSzY93xS4fVjycngVfcYDp0nKdnFao"
+  admin:
+    username: admin
+    password: "CHANGE_ME"
+  db:
+    name: keycloak
+    username: keycloak
+    password: "CHANGE_ME"
+    storageSize: 10Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Traefik Ingress for the Wazuh Dashboard (HTTPS)
+ingress:
+  enabled: false
+  ingressClassName: traefik
+  host: wazuh.example.com
+  # "ClusterIssuer" for public certs (e.g. letsencrypt), "Issuer" for namespace-scoped (e.g. local dev)
+  issuerKind: "ClusterIssuer"
+  # Name of the cert-manager issuer to provision the TLS certificate
+  clusterIssuer: "letsencrypt-prod"
+  # Secret name where cert-manager stores the provisioned TLS keypair
+  tlsSecretName: wazuh-dashboard-ingress-tls
