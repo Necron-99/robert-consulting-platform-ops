@@ -123,7 +123,7 @@ spec:
           image: {{ .Values.metrics.image.repository }}:{{ .Values.metrics.image.tag }}
           imagePullPolicy: {{ .Values.metrics.image.pullPolicy }}
           args:
-            - --nginx.scrape-uri=http://localhost/nginx_status
+            - --nginx.scrape-uri=http://127.0.0.1/nginx_status
           ports:
             - name: metrics
               containerPort: {{ .Values.metrics.port }}
