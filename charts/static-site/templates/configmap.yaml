@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-nginx-conf
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "static-site.labels" . | nindent 4 }}
+data:
+  nginx.conf: |
+    {{- include "static-site.nginxConfig" . | nindent 4 }}

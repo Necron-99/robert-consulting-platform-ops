@@ -1,0 +1,14 @@
+# values-main.yaml — robertconsulting.net
+namespace: main-site
+site:
+  name: main-site
+  spaRouting: false
+  errorDocument: error.html
+ingress:
+  host: robertconsulting.net
+  tlsSecretName: main-site-tls
+  extraHosts:
+    - host: www.robertconsulting.net
+      tlsSecretName: www-main-site-tls
+s3:
+  secretName: aws-static-site-credentials

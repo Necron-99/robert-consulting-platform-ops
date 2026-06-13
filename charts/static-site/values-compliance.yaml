@@ -1,0 +1,10 @@
+# values-compliance.yaml — compliance.robertconsulting.net
+namespace: compliance-site
+site:
+  name: compliance-site
+  spaRouting: true
+ingress:
+  host: compliance.robertconsulting.net
+  tlsSecretName: compliance-site-tls
+s3:
+  secretName: aws-static-site-credentials

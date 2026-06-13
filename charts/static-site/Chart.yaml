@@ -1,0 +1,13 @@
+apiVersion: v2
+name: static-site
+description: Robert Consulting static site — nginx serving S3-synced content
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - static-site
+  - nginx
+  - s3
+maintainers:
+  - name: Rob Bailey
+    email: rsbailey@necron99.org

@@ -1,0 +1,175 @@
+# =============================================================================
+# static-site/values.yaml
+# =============================================================================
+# Reusable Helm chart for nginx-served static sites synced from S3.
+# One chart, three instances:
+#
+#   helm upgrade --install main-site ./charts/static-site \
+#     -f ./charts/static-site/values-main.yaml --namespace main-site
+#
+#   helm upgrade --install threat-site ./charts/static-site \
+#     -f ./charts/static-site/values-threat.yaml --namespace threat-site
+#
+#   helm upgrade --install compliance-site ./charts/static-site \
+#     -f ./charts/static-site/values-compliance.yaml --namespace compliance-site
+#
+# Override any value with --set or a per-site values file.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Namespace
+# -----------------------------------------------------------------------------
+namespace: static-site
+
+# -----------------------------------------------------------------------------
+# Site identity — used for labels, naming, and nginx config
+# -----------------------------------------------------------------------------
+site:
+  name: main-site
+  # SPA mode: serve index.html for all 404s (required for React/Vue/Angular)
+  # Set false for sites with a real error.html (main site)
+  spaRouting: true
+  # Error document — only used when spaRouting is false
+  errorDocument: error.html
+
+# -----------------------------------------------------------------------------
+# Image
+# -----------------------------------------------------------------------------
+image:
+  repository: nginx
+  tag: alpine
+  pullPolicy: IfNotPresent
+
+# -----------------------------------------------------------------------------
+# Deployment
+# -----------------------------------------------------------------------------
+replicas: 1
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+# -----------------------------------------------------------------------------
+# Resources — nginx:alpine is very lightweight
+# -----------------------------------------------------------------------------
+resources:
+  requests:
+    memory: 32Mi
+    cpu: 10m
+  limits:
+    memory: 128Mi
+    cpu: 200m
+
+# -----------------------------------------------------------------------------
+# S3 sync — init container fetches content from S3 on pod start
+# Deploy new content: aws s3 sync ./dist s3://BUCKET/
+# then: kubectl rollout restart deployment/SITE -n NAMESPACE
+# -----------------------------------------------------------------------------
+s3:
+  secretName: aws-static-site-credentials
+  # Secret must contain:
+  #   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION
+  #   S3_BUCKET — the bucket name
+  #   S3_PREFIX — prefix within bucket (e.g. "" for root, "dist/" for subdir)
+  initImage: amazon/aws-cli:latest
+  # Local path where content is served from
+  contentPath: /usr/share/nginx/html
+
+# -----------------------------------------------------------------------------
+# Security headers — translated from CloudFront response headers policy
+# These match the existing CloudFront CSP exactly.
+# Override connect-src per site to add site-specific API URLs.
+# -----------------------------------------------------------------------------
+headers:
+  contentSecurityPolicy: >-
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-hashes' https://www.google.com https://www.gstatic.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data: https://images.unsplash.com https://via.placeholder.com https://image.tmdb.org https://www.google.com https://www.gstatic.com;
+    connect-src 'self' https://api.compliance.robertconsulting.net https://api.threat.robertconsulting.net https://*.amazonaws.com https://www.google.com https://*.googleapis.com https://*.lambda-url.us-east-1.on.aws https://*.lambda-url.us-west-1.on.aws https://*.lambda-url.us-west-2.on.aws https://*.lambda-url.eu-west-1.on.aws https://*.lambda-url.eu-central-1.on.aws https://*.lambda-url.ap-southeast-1.on.aws https://*.lambda-url.ap-northeast-1.on.aws;
+    object-src 'none';
+    base-uri 'self';
+    frame-src 'none' https://www.google.com;
+    frame-ancestors 'none';
+    manifest-src 'self';
+    worker-src 'self';
+    upgrade-insecure-requests;
+    block-all-mixed-content;
+  xFrameOptions: DENY
+  xContentTypeOptions: nosniff
+  referrerPolicy: strict-origin-when-cross-origin
+  strictTransportSecurity: "max-age=31536000; includeSubDomains"
+  xXssProtection: "1; mode=block"
+
+# -----------------------------------------------------------------------------
+# Ingress
+# -----------------------------------------------------------------------------
+ingress:
+  host: robertconsulting.net
+  clusterIssuer: letsencrypt-prod
+  tlsSecretName: main-site-tls
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  # Additional hostnames (e.g. www redirect)
+  extraHosts: []
+  # - host: www.robertconsulting.net
+  #   tlsSecretName: www-main-site-tls
+
+# -----------------------------------------------------------------------------
+# Prometheus metrics — nginx-prometheus-exporter sidecar
+# Exposes nginx stub_status metrics for Prometheus scraping.
+# Requires kube-prometheus-stack to be installed (provides ServiceMonitor CRD).
+# -----------------------------------------------------------------------------
+metrics:
+  enabled: true
+  image:
+    repository: nginx/nginx-prometheus-exporter
+    tag: "1.1.0"
+    pullPolicy: IfNotPresent
+  port: 9113
+  resources:
+    requests:
+      memory: 16Mi
+      cpu: 5m
+    limits:
+      memory: 32Mi
+      cpu: 50m
+  # ServiceMonitor — tells Prometheus how to scrape this service
+  serviceMonitor:
+    enabled: true
+    # Must match the release label on kube-prometheus-stack
+    release: kube-prometheus-stack
+    interval: 30s
+    scrapeTimeout: 10s
+
+# -----------------------------------------------------------------------------
+# Logging — nginx JSON access log format for Loki/Promtail parsing
+# Promtail will auto-discover these logs via pod labels.
+# No additional configuration needed — Promtail DaemonSet is already running.
+# -----------------------------------------------------------------------------
+logging:
+  # JSON format enables structured log parsing in Loki
+  jsonFormat: true
+  # Log level for nginx error log
+  errorLogLevel: warn
+
+# -----------------------------------------------------------------------------
+# Health probes — nginx returns 200 on / for static sites
+# -----------------------------------------------------------------------------
+probes:
+  liveness:
+    path: /
+    initialDelaySeconds: 5
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /
+    initialDelaySeconds: 3
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3

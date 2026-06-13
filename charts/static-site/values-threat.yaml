@@ -1,0 +1,10 @@
+# values-threat.yaml — threat.robertconsulting.net
+namespace: threat-site
+site:
+  name: threat-site
+  spaRouting: true
+ingress:
+  host: threat.robertconsulting.net
+  tlsSecretName: threat-site-tls
+s3:
+  secretName: aws-static-site-credentials
