@@ -60,3 +60,19 @@ probes:
     failureThreshold: 10
 # Overriding resources for single-node k3s — requests are conservative
 # Actual usage will be higher during inference but limits handle that
+
+# IP allowlist for external access
+# Update when your home IP changes
+ingress:
+  enabled: true
+  host: ollama.robertconsulting.net
+  clusterIssuer: letsencrypt-prod
+  tlsSecretName: ollama-tls
+  allowedIPs: "73.251.19.77/32"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "73.251.19.77/32"
