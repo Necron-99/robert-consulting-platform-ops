@@ -1,0 +1,61 @@
+# =============================================================================
+# ollama/values.yaml
+# =============================================================================
+namespace: ollama
+
+image:
+  repository: ollama/ollama
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Models to pull on startup via init container
+# Add more models here and redeploy to pull them
+models:
+  - llama3.2:3b
+
+# Persistent storage for model files
+persistence:
+  storageClass: local-path
+  size: 50Gi
+  accessMode: ReadWriteOnce
+
+resources:
+  requests:
+    memory: 2Gi
+    cpu: 500m
+  limits:
+    memory: 8Gi
+    cpu: 4000m
+
+service:
+  type: ClusterIP
+  port: 11434
+
+ingress:
+  host: ollama.robertconsulting.net
+  clusterIssuer: letsencrypt-prod
+  tlsSecretName: ollama-tls
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Ollama responses can be slow on CPU — generous timeouts
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    # Allow large request bodies for context
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
+# Liveness/readiness — Ollama takes time to start, especially
+# when pulling models on first boot
+probes:
+  liveness:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5
+  readiness:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 10
+# Overriding resources for single-node k3s — requests are conservative
+# Actual usage will be higher during inference but limits handle that

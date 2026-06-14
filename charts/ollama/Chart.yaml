@@ -1,0 +1,13 @@
+apiVersion: v2
+name: ollama
+description: Ollama self-hosted LLM inference on k3s
+type: application
+version: 0.1.0
+appVersion: "0.6.0"
+keywords:
+  - ollama
+  - llm
+  - ai
+maintainers:
+  - name: Rob Bailey
+    email: rsbailey@necron99.org
