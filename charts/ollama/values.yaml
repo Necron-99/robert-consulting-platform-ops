@@ -32,6 +32,7 @@ service:
   port: 11434
 
 ingress:
+  enabled: false
   host: ollama.robertconsulting.net
   clusterIssuer: letsencrypt-prod
   tlsSecretName: ollama-tls
